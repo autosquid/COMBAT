@@ -1,0 +1,75 @@
+package require Tk
+package require Img
+
+update
+
+set filename [tk_getOpenFile]
+image create photo imgobj -file $filename
+
+set ::winw 800
+set ::winh 600
+
+ttk::frame .f -width $::winw -height $::winh
+
+grid .f -column 0 -row 0 -sticky nsew
+grid columnconfigure . 0 -weight 1
+grid rowconfigure . 0 -weight 1
+grid rowconfigure .f 0 -weight 1
+grid columnconfigure .f 0 -weight 1
+
+ttk::label .f.l -image imgobj
+grid .f.l -column 0 -row 0 -sticky nsew
+
+
+bind .f.l <Configure> {
+    exec convert $filename -resize %wx%h -background lightgray -gravity center -extent %wx%h newfile
+    imgobj read newfile -shrink
+    puts [winfo geometry .]
+    puts [winfo geometry .f]
+    puts [winfo geometry .f.l]
+    puts [image width imgobj]
+    puts [image height imgobj]
+}
+
+
+bind . <Key> {
+    if {"%K" == "S" || "%K"== "s"} then {set savefilename [tk_getSaveFile]}
+}
+
+bind . <Key-q> {
+    set answer [tk_messageBox -message "Really quit?" \
+                -icon question -type yesno \
+                -detail "Select \"Yes\" to make the application exit"]
+    switch -- $answer {
+        yes exit
+        no {}
+    }
+}
+
+bind . <Key-r> {
+    exec convert $filename -resize %wx%h -background lightgray -gravity center -extent %wx%h newfile
+    imgobj read newfile -shrink
+}
+
+bind . <Key-o> {
+    set savefilename [tk_getOpenFile]
+    exec convert $filename -resize %wx%h -background lightgray -gravity center -extent %wx%h newfile
+    imgobj read newfile -shrink
+}
+bind . <Key-u> {
+    set savefilename [tk_getSaveFile]
+}
+bind . <Key-n> {
+    set savefilename [tk_getSaveFile]
+}
+bind . <Key-p> {
+    set savefilename [tk_getSaveFile]
+}
+
+bind .f.l <ButtonRelease-1> {
+    puts stdout "mouse button released: (%x,%y)"
+}
+
+bind .f.l <ButtonRelease-2> {
+    puts stdout "mouse button 2 released: (%x,%y)"
+}

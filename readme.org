@@ -1,0 +1,22 @@
+#+TITLE: COMBAT: COntour Maker BAsed Tk
+#+AUTHOR: uuplusu
+#+EMAIL: justin.seeley.cn@gmail.com
+
+* todo [4/4]
+1. [X] ask for an image to load at opening
+2. [X] resize properly
+3. [X] move to a point, left click to mark
+4. [X] right click to end
+
+
+** Key Bindings [4/6]
+1. [X] =o= to open a new file/dir
+1. [X] =r= to reload a new file/dir
+2. [X] =n= or =SPC= =DOWN= =RIGHT= next file in the same dir
+3. [X] =p= or =UP= =LEFT= next file in the same dir
+4. [X] =s= to save
+4. [ ] =u= to undo
+5. [ ] =CMD+= (window) zoom in
+6. [ ] =CMD-= (window) zoom out
+*** +Optional+
+8. +mouse drag to move file+
