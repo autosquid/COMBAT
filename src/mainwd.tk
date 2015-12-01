@@ -17,16 +17,36 @@ grid rowconfigure . 0 -weight 1
 grid rowconfigure .f 0 -weight 1
 grid columnconfigure .f 0 -weight 1
 
-ttk::label .f.l -image imgobj
-grid .f.l -column 0 -row 0 -sticky nsew
+canvas .f.l -width $::winw -height $::winh
 
+grid .f.l -column 0 -row 0 -sticky nsew
+set imid [.f.l create image 0 0 -image imgobj]
 
 bind .f.l <Configure> {
-    exec convert $filename -resize %wx%h -background lightgray -gravity center -extent %wx%h newfile
-    imgobj read newfile -shrink
+    puts "====="
     puts [winfo geometry .]
     puts [winfo geometry .f]
     puts [winfo geometry .f.l]
+
+
+    set w %w
+    set h %h
+
+    exec convert $filename -resize [set w]x[set h] -background lightgray -gravity center -extent [set w]x[set h] newfile
+    imgobj read newfile -shrink
+
+    .f.l configure -width $w -height $h
+
+    set nw %w/2
+    set nh %h/2
+
+
+    puts [winfo geometry .]
+    puts [winfo geometry .f]
+    puts [winfo geometry .f.l]
+
+    puts [.f.l cget -width]
+    puts [.f.l cget -height]
     puts [image width imgobj]
     puts [image height imgobj]
 }
