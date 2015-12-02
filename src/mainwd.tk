@@ -7,7 +7,7 @@ global filename
 global ::imgw
 global ::imgh
 
-set filename "sofa.png"
+set filename [tk_getOpenFile]
 image create photo imgobj -file $filename
 
 set ::saved 0
@@ -32,9 +32,8 @@ grid .f.l -column 0 -row 0 -sticky nsew
 .f.l create image 0 0 -image imgobj -anchor nw -tags bg
 
 
-proc redisplay_core {ww wh} {
+proc redisplay_markers {ww wh} {
     global  ptarray
-
 
     .f.l delete markers
 
@@ -56,7 +55,7 @@ bind .f.l <Configure> {
     exec convert $filename -resize [set w]x[set h] -background lightgray -gravity center -extent [set w]x[set h] newfile
     imgobj read newfile -shrink
 
-    redisplay_core %w %h
+    redisplay_markers %w %h
 }
 
 set ptarray {}
@@ -129,15 +128,32 @@ bind . <Key-q> {
     }
 }
 
-proc clear { } {
+proc clear_markers { } {
     global ptarray
 
     set ptarray {}
-    redisplay_core [.f.l cget -width] [.f.l cget -height]
+    redisplay_markers [.f.l cget -width] [.f.l cget -height]
 }
 
 bind . <Key-r> {
-    clear
+    clear_markers
+}
+
+proc redisplay_img { } {
+    global ::imgw
+    global ::imgh
+    global ::filename
+
+    imgobj read $filename
+    set ::imgw [image width imgobj]
+    set ::imgh [image height imgobj]
+
+    set w [expr [winfo width .f.l]]
+    set h [expr [winfo height .f.l]]
+
+    exec convert $filename -resize [set w]x[set h] -background lightgray -gravity center -extent [set w]x[set h] newfile
+    imgobj read newfile -shrink
+    update
 }
 
 
@@ -147,21 +163,16 @@ bind . <Key-o> {
     global ::imgw
     global ::imgh
 
-
     set filename [tk_getOpenFile]
+
     global ::saved
-    set ::saved 0
+    set ::saved 1
 
     set ptarray {}
 
-    imgobj read filename
-    set ::imgw [image width imgobj]
-    set ::imgh [image height imgobj]
+    redisplay_img
 
-    exec convert $filename -resize [set w]x[set h] -background lightgray -gravity center -extent [set w]x[set h] newfile
-    imgobj read newfile -shrink
-
-    clear
+    clear_markers
 }
 
 bind . <Key-u> {
@@ -169,36 +180,54 @@ bind . <Key-u> {
     global ::saved
     set ::saved 0
 
-
     set ptarray [lreplace $ptarray end-1 end]
-    redisplay_core [.f.l cget -width] [.f.l cget -height]
+    redisplay_markers [.f.l cget -width] [.f.l cget -height]
 }
 
 proc findfile {} {
+    global filename
     set imdir [file dirname $filename]
     set bname [file tail $filename]
     set L [string length bname]
-    set suffix [string range $bname $L-4 $L-1]
-    set regex  "*."+$suffix
-    filelist [glob -directory $imdir $regex]
-    set index [lsearch $filelist $bname]
+    set suffix [string range $bname end-2 end]
+    set regex  "*.$suffix"
+    set filelist [glob -directory $imdir $regex]
 
-    return $index
+    set normalnames {}
+    foreach x $filelist {
+        lappend normalnames [file normalize $x]
+    }
+
+    set normalname [file normalize $filename]
+    set index [lsearch $normalnames $normalname]
+
+    return [list $normalnames $index]
 }
 
 bind . <Key-n> {
-    set index [findfile]
-    if {$index>0 && $index < [llength $filelist]-1} then {
-            set filename [file join $imdir [lindex $filelist $index+1]]
-            update
+    global filename
+
+    set list_index [findfile]
+    set filelist [lindex $list_index 0]
+    set index [lindex $list_index 1]
+    if {$index>=0 && $index < [llength $filelist]-1} then {
+            set filename [lindex $filelist $index+1]
+            redisplay_img
+            clear_markers
     }
 }
 
 bind . <Key-p> {
-    set index [findfile]
-    if {$index>1} then {
-            set filename [file join $imdir [lindex $filelist $index-1]]
-            update
+    global filename
+
+    set list_index [findfile]
+    set filelist [lindex $list_index 0]
+    set index [lindex $list_index 1]
+
+    if {$index>0} then {
+            set filename [lindex $filelist $index-1]
+            redisplay_img
+            clear_markers
     }
 }
 
@@ -214,5 +243,5 @@ bind .f.l <ButtonRelease-2> {
     set impt [win2im %x %y $w $h]
 
     lappend ptarray [lindex $impt 0] [lindex $impt 1]
-    redisplay_core $w $h
+    redisplay_markers $w $h
 }
