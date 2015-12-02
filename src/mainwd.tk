@@ -10,6 +10,8 @@ global ::imgh
 set filename "sofa.png"
 image create photo imgobj -file $filename
 
+set ::saved 0
+
 set ::imgw [image width imgobj]
 set ::imgh [image height imgobj]
 
@@ -27,28 +29,34 @@ grid columnconfigure .f 0 -weight 1
 canvas .f.l -width $::winw -height $::winh
 
 grid .f.l -column 0 -row 0 -sticky nsew
-set imid [.f.l create image 0 0 -image imgobj -anchor nw]
+.f.l create image 0 0 -image imgobj -anchor nw -tags bg
+
+
+proc redisplay_core {ww wh} {
+    global  ptarray
+
+
+    .f.l delete markers
+
+    for {set x 0} {$x < [llength $ptarray]} {set x [expr $x+2]} {
+            set imx [lindex $ptarray $x]
+            set imy [lindex $ptarray [expr $x+1]]
+
+        set wpt [im2win $imx $imy $ww $wh]
+        set ptx [lindex $wpt 0]
+        set pty [lindex $wpt 1]
+        .f.l create rectangle [expr $ptx-2] [expr $pty-2] [expr $ptx+2] [expr $pty+2] -tags markers
+    }
+}
 
 bind .f.l <Configure> {
-    puts "====="
-
     set w [expr [winfo width .f.l]]
-    set h [expr [winfo heigh .f.l]]
+    set h [expr [winfo height .f.l]]
 
     exec convert $filename -resize [set w]x[set h] -background lightgray -gravity center -extent [set w]x[set h] newfile
     imgobj read newfile -shrink
 
-    set nw %w/2
-    set nh %h/2
-
-    puts [winfo geometry .]
-    puts [winfo geometry .f]
-    puts [winfo geometry .f.l]
-
-    puts [.f.l cget -width]
-    puts [.f.l cget -height]
-    puts [image width imgobj]
-    puts [image height imgobj]
+    redisplay_core %w %h
 }
 
 set ptarray {}
@@ -58,8 +66,6 @@ proc save_array {ptfilename} {
     global ptarray
 
     set fo [open $ptfilename w]
-    puts $fo $filename
-    puts $fo $ptarray
     close $fo
 }
 
@@ -67,7 +73,8 @@ proc getscale {ww wh} {
     global ::imgw
     global ::imgh
 
-    set s [expr min($ww/$::imgw, $wh/$::imgh)]
+
+    set s [expr min(double($ww)/$::imgw, double($wh)/$::imgh)]
     return $s
 }
 
@@ -78,56 +85,93 @@ proc win2im {x y ww wh} {
     set s [getscale $ww $wh]
 
     set cx [expr $x-$ww/double(2)]
-    set cy [expr $y-$wh/2]
+    set cy [expr $y-$wh/double(2)]
 
-    set ix [expr {$cx/$s+$::imgw/2}]
-    set iy [expr {$cy/$s+$::imgw/2}]
+    set ix [expr {$cx/$s+$::imgw/2.0}]
+    set iy [expr {$cy/$s+$::imgh/2.0}]
 
     return [list $ix $iy]
 }
 
-proc im2win {x  y  ww  wh} {
+proc im2win {x  y ww wh} {
+    global ::imgw
+    global ::imgh
+
     set s [getscale $ww $wh]
-    set imcx $x-$::imw/2
-    set imcy $y-$::imh/2
-    set simcx $imcx*s
-    set simcy $imcy*s
-    set w {$simcx+$ww/2 $simcy+$wh/2}
-    return $w
+
+    set imcx [expr $x-$::imgw/2.0]
+    set imcy [expr $y-$::imgh/2.0]
+    set simcx [expr $imcx*$s]
+    set simcy [expr $imcy*$s]
+    return [list [expr $simcx+$ww/2.0] [expr $simcy+$wh/2.0]]
 }
 
 bind . <Key> {
+    global ::saved
     if {"%K" == "S" || "%K"== "s"} then {
             set savefilename [tk_getSaveFile]
             save_array $savefilename
-            set ptarray {}
+            set ::saved 1
     }
 }
 
 bind . <Key-q> {
-    if {[llength $ptarray]>0} then {
-            set answer [tk_messageBox -message "Really quit?" \
+    global ptarray
+    global ::saved
+
+    if {[llength $ptarray]>0 && $::saved==0} then {
+            set answer [tk_messageBox -message "Data unsaved, really quit?" \
                         -icon question -type yesno \
                         -detail "Select \"Yes\" to make the application exit"]
             if {$answer == yes} then { exit }
+    } else {
+        exit
     }
 }
 
-bind . <Key-r> {
+proc clear { } {
+    global ptarray
+
     set ptarray {}
-    update
+    redisplay_core [.f.l cget -width] [.f.l cget -height]
+}
+
+bind . <Key-r> {
+    clear
 }
 
 
 bind . <Key-o> {
+    global filename
+    global ptarray
+    global ::imgw
+    global ::imgh
+
+
     set filename [tk_getOpenFile]
-    update
+    global ::saved
+    set ::saved 0
+
+    set ptarray {}
+
+    imgobj read filename
+    set ::imgw [image width imgobj]
+    set ::imgh [image height imgobj]
+
+    exec convert $filename -resize [set w]x[set h] -background lightgray -gravity center -extent [set w]x[set h] newfile
+    imgobj read newfile -shrink
+
+    clear
 }
 
 bind . <Key-u> {
-    set L [llength $ptarray]
-    lreplace $ptarray $L-2 $L-1
-    update
+    global ptarray
+    global ::saved
+    set ::saved 0
+
+
+    set ptarray [lreplace $ptarray end-1 end]
+    redisplay_core [.f.l cget -width] [.f.l cget -height]
 }
 
 proc findfile {} {
@@ -145,35 +189,30 @@ proc findfile {} {
 bind . <Key-n> {
     set index [findfile]
     if {$index>0 && $index < [llength $filelist]-1} then {
-        set filename [file join $imdir [lindex $filelist $index+1]]
-        update
+            set filename [file join $imdir [lindex $filelist $index+1]]
+            update
     }
 }
 
 bind . <Key-p> {
     set index [findfile]
     if {$index>1} then {
-        set filename [file join $imdir [lindex $filelist $index-1]]
-        update
+            set filename [file join $imdir [lindex $filelist $index-1]]
+            update
     }
 }
 
-bind .f.l <ButtonRelease-1> {
+bind .f.l <ButtonRelease-2> {
     global ptarray
+    global ::saved
+    set ::saved 0
 
-    puts stdout "mouse button released: (%x,%y)"
-    .f.l create rectangle [expr %x-2] [expr %y-2] [expr %x+2] [expr %y+2]
 
-    set w [.f.l cget -width]
-    set h [.f.l cget -height]
+    set w [winfo width .f.l]
+    set h [winfo height .f.l]
 
-    set impt [win2im %x %y $w  $h ]
-    puts stdout $impt
+    set impt [win2im %x %y $w $h]
 
     lappend ptarray [lindex $impt 0] [lindex $impt 1]
-    puts stdout $ptarray
-}
-
-bind .f.l <ButtonRelease-2> {
-    puts stdout "mouse button 2 released: (%x,%y)"
+    redisplay_core $w $h
 }
