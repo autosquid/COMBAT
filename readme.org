@@ -2,7 +2,10 @@
 #+AUTHOR: uuplusu
 #+EMAIL: justin.seeley.cn@gmail.com
 
-make and save markers on image
+A tcl/tk based tool for making and saving markers on image
+
+
+[[https://cloud.githubusercontent.com/assets/758925/11529674/956be2ea-9929-11e5-8c07-3d4bdf07934c.png]]
 
 * Usage [6/6]
 1. [X] ask for an image to load at opening
