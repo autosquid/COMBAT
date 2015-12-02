@@ -20,26 +20,19 @@ grid columnconfigure .f 0 -weight 1
 canvas .f.l -width $::winw -height $::winh
 
 grid .f.l -column 0 -row 0 -sticky nsew
-set imid [.f.l create image 0 0 -image imgobj]
+set imid [.f.l create image 0 0 -image imgobj -anchor nw]
 
 bind .f.l <Configure> {
     puts "====="
-    puts [winfo geometry .]
-    puts [winfo geometry .f]
-    puts [winfo geometry .f.l]
 
-
-    set w %w
-    set h %h
+    set w [expr [winfo width .f.l]]
+    set h [expr [winfo heigh .f.l]]
 
     exec convert $filename -resize [set w]x[set h] -background lightgray -gravity center -extent [set w]x[set h] newfile
     imgobj read newfile -shrink
 
-    .f.l configure -width $w -height $h
-
     set nw %w/2
     set nh %h/2
-
 
     puts [winfo geometry .]
     puts [winfo geometry .f]
