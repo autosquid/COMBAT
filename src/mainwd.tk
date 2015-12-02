@@ -3,8 +3,15 @@ package require Img
 
 update
 
-set filename [tk_getOpenFile]
+global filename
+global ::imgw
+global ::imgh
+
+set filename "sofa.png"
 image create photo imgobj -file $filename
+
+set ::imgw [image width imgobj]
+set ::imgh [image height imgobj]
 
 set ::winw 800
 set ::winh 600
@@ -44,43 +51,127 @@ bind .f.l <Configure> {
     puts [image height imgobj]
 }
 
+set ptarray {}
+
+proc save_array {ptfilename} {
+    global filename
+    global ptarray
+
+    set fo [open $ptfilename w]
+    puts $fo $filename
+    puts $fo $ptarray
+    close $fo
+}
+
+proc getscale {ww wh} {
+    global ::imgw
+    global ::imgh
+
+    set s [expr min($ww/$::imgw, $wh/$::imgh)]
+    return $s
+}
+
+proc win2im {x y ww wh} {
+    global ::imgw
+    global ::imgh
+
+    set s [getscale $ww $wh]
+
+    set cx [expr $x-$ww/double(2)]
+    set cy [expr $y-$wh/2]
+
+    set ix [expr {$cx/$s+$::imgw/2}]
+    set iy [expr {$cy/$s+$::imgw/2}]
+
+    return [list $ix $iy]
+}
+
+proc im2win {x  y  ww  wh} {
+    set s [getscale $ww $wh]
+    set imcx $x-$::imw/2
+    set imcy $y-$::imh/2
+    set simcx $imcx*s
+    set simcy $imcy*s
+    set w {$simcx+$ww/2 $simcy+$wh/2}
+    return $w
+}
 
 bind . <Key> {
-    if {"%K" == "S" || "%K"== "s"} then {set savefilename [tk_getSaveFile]}
+    if {"%K" == "S" || "%K"== "s"} then {
+            set savefilename [tk_getSaveFile]
+            save_array $savefilename
+            set ptarray {}
+    }
 }
 
 bind . <Key-q> {
-    set answer [tk_messageBox -message "Really quit?" \
-                -icon question -type yesno \
-                -detail "Select \"Yes\" to make the application exit"]
-    switch -- $answer {
-        yes exit
-        no {}
+    if {[llength $ptarray]>0} then {
+            set answer [tk_messageBox -message "Really quit?" \
+                        -icon question -type yesno \
+                        -detail "Select \"Yes\" to make the application exit"]
+            if {$answer == yes} then { exit }
     }
 }
 
 bind . <Key-r> {
-    exec convert $filename -resize %wx%h -background lightgray -gravity center -extent %wx%h newfile
-    imgobj read newfile -shrink
+    set ptarray {}
+    update
 }
 
+
 bind . <Key-o> {
-    set savefilename [tk_getOpenFile]
-    exec convert $filename -resize %wx%h -background lightgray -gravity center -extent %wx%h newfile
-    imgobj read newfile -shrink
+    set filename [tk_getOpenFile]
+    update
 }
+
 bind . <Key-u> {
-    set savefilename [tk_getSaveFile]
+    set L [llength $ptarray]
+    lreplace $ptarray $L-2 $L-1
+    update
 }
+
+proc findfile {} {
+    set imdir [file dirname $filename]
+    set bname [file tail $filename]
+    set L [string length bname]
+    set suffix [string range $bname $L-4 $L-1]
+    set regex  "*."+$suffix
+    filelist [glob -directory $imdir $regex]
+    set index [lsearch $filelist $bname]
+
+    return $index
+}
+
 bind . <Key-n> {
-    set savefilename [tk_getSaveFile]
+    set index [findfile]
+    if {$index>0 && $index < [llength $filelist]-1} then {
+        set filename [file join $imdir [lindex $filelist $index+1]]
+        update
+    }
 }
+
 bind . <Key-p> {
-    set savefilename [tk_getSaveFile]
+    set index [findfile]
+    if {$index>1} then {
+        set filename [file join $imdir [lindex $filelist $index-1]]
+        update
+    }
 }
 
 bind .f.l <ButtonRelease-1> {
+    global ptarray
+
     puts stdout "mouse button released: (%x,%y)"
+    .f.l create rectangle [expr %x-2] [expr %y-2] [expr %x+2] [expr %y+2]
+
+    set w [.f.l cget -width]
+    set h [.f.l cget -height]
+
+    set impt [win2im %x %y $w  $h ]
+    puts stdout $impt
+
+    lappend ptarray [lindex $impt 0] [lindex $impt 1]
+    puts stdout $ptarray
 }
 
 bind .f.l <ButtonRelease-2> {
