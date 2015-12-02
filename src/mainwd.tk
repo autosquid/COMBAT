@@ -6,11 +6,10 @@ update
 global filename
 global ::imgw
 global ::imgh
+global set ::saved 0
 
 set filename [tk_getOpenFile]
 image create photo imgobj -file $filename
-
-set ::saved 0
 
 set ::imgw [image width imgobj]
 set ::imgh [image height imgobj]
@@ -31,22 +30,7 @@ canvas .f.l -width $::winw -height $::winh
 grid .f.l -column 0 -row 0 -sticky nsew
 .f.l create image 0 0 -image imgobj -anchor nw -tags bg
 
-
-proc redisplay_markers {ww wh} {
-    global  ptarray
-
-    .f.l delete markers
-
-    for {set x 0} {$x < [llength $ptarray]} {set x [expr $x+2]} {
-            set imx [lindex $ptarray $x]
-            set imy [lindex $ptarray [expr $x+1]]
-
-        set wpt [im2win $imx $imy $ww $wh]
-        set ptx [lindex $wpt 0]
-        set pty [lindex $wpt 1]
-        .f.l create rectangle [expr $ptx-2] [expr $pty-2] [expr $ptx+2] [expr $pty+2] -tags markers
-    }
-}
+set ptarray {}
 
 bind .f.l <Configure> {
     set w [expr [winfo width .f.l]]
@@ -58,60 +42,13 @@ bind .f.l <Configure> {
     redisplay_markers %w %h
 }
 
-set ptarray {}
 
-proc save_array {ptfilename} {
-    global filename
-    global ptarray
-
-    set fo [open $ptfilename w]
-    close $fo
-}
-
-proc getscale {ww wh} {
-    global ::imgw
-    global ::imgh
-
-
-    set s [expr min(double($ww)/$::imgw, double($wh)/$::imgh)]
-    return $s
-}
-
-proc win2im {x y ww wh} {
-    global ::imgw
-    global ::imgh
-
-    set s [getscale $ww $wh]
-
-    set cx [expr $x-$ww/double(2)]
-    set cy [expr $y-$wh/double(2)]
-
-    set ix [expr {$cx/$s+$::imgw/2.0}]
-    set iy [expr {$cy/$s+$::imgh/2.0}]
-
-    return [list $ix $iy]
-}
-
-proc im2win {x  y ww wh} {
-    global ::imgw
-    global ::imgh
-
-    set s [getscale $ww $wh]
-
-    set imcx [expr $x-$::imgw/2.0]
-    set imcy [expr $y-$::imgh/2.0]
-    set simcx [expr $imcx*$s]
-    set simcy [expr $imcy*$s]
-    return [list [expr $simcx+$ww/2.0] [expr $simcy+$wh/2.0]]
-}
-
-bind . <Key> {
+bind . <Key-s> {
     global ::saved
-    if {"%K" == "S" || "%K"== "s"} then {
-            set savefilename [tk_getSaveFile]
-            save_array $savefilename
-            set ::saved 1
-    }
+
+    set savefilename [tk_getSaveFile]
+    save_array $savefilename
+    set ::saved 1
 }
 
 bind . <Key-q> {
@@ -132,7 +69,7 @@ proc clear_markers { } {
     global ptarray
 
     set ptarray {}
-    redisplay_markers [.f.l cget -width] [.f.l cget -height]
+    redisplay_markers [winfo width .f.l] [winfo height .f.l]
 }
 
 bind . <Key-r> {
@@ -181,7 +118,7 @@ bind . <Key-u> {
     set ::saved 0
 
     set ptarray [lreplace $ptarray end-1 end]
-    redisplay_markers [.f.l cget -width] [.f.l cget -height]
+    redisplay_markers [winfo width .f.l] [winfo height .f.l]
 }
 
 proc findfile {} {
@@ -244,4 +181,65 @@ bind .f.l <ButtonRelease-2> {
 
     lappend ptarray [lindex $impt 0] [lindex $impt 1]
     redisplay_markers $w $h
+}
+
+proc redisplay_markers {ww wh} {
+    global  ptarray
+
+    .f.l delete markers
+
+    for {set x 0} {$x < [llength $ptarray]} {set x [expr $x+2]} {
+            set imx [lindex $ptarray $x]
+            set imy [lindex $ptarray [expr $x+1]]
+
+        set wpt [im2win $imx $imy $ww $wh]
+        set ptx [lindex $wpt 0]
+        set pty [lindex $wpt 1]
+        .f.l create rectangle [expr $ptx-2] [expr $pty-2] [expr $ptx+2] [expr $pty+2] -tags markers
+    }
+}
+
+proc save_array {ptfilename} {
+    global filename
+    global ptarray
+
+    set fo [open $ptfilename w]
+    close $fo
+}
+
+proc getscale {ww wh} {
+    global ::imgw
+    global ::imgh
+
+
+    set s [expr min(double($ww)/$::imgw, double($wh)/$::imgh)]
+    return $s
+}
+
+proc win2im {x y ww wh} {
+    global ::imgw
+    global ::imgh
+
+    set s [getscale $ww $wh]
+
+    set cx [expr $x-$ww/double(2)]
+    set cy [expr $y-$wh/double(2)]
+
+    set ix [expr {$cx/$s+$::imgw/2.0}]
+    set iy [expr {$cy/$s+$::imgh/2.0}]
+
+    return [list $ix $iy]
+}
+
+proc im2win {x  y ww wh} {
+    global ::imgw
+    global ::imgh
+
+    set s [getscale $ww $wh]
+
+    set imcx [expr $x-$::imgw/2.0]
+    set imcy [expr $y-$::imgh/2.0]
+    set simcx [expr $imcx*$s]
+    set simcy [expr $imcy*$s]
+    return [list [expr $simcx+$ww/2.0] [expr $simcy+$wh/2.0]]
 }
