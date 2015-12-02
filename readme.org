@@ -2,21 +2,26 @@
 #+AUTHOR: uuplusu
 #+EMAIL: justin.seeley.cn@gmail.com
 
-* todo [4/4]
+make and save markers on image
+
+* Usage [6/6]
 1. [X] ask for an image to load at opening
-1. [X] ask before quit
-2. [X] resize properly
-4. [X] right click to mark
-
-
-** Key Bindings [6/6]
-1. [X] =o= to open a new file/dir
-2. [X] =r= to restart allover
-3. [X] =n= for next file in the same dir
-4. [X] =p= for next file in the same dir
-5. [X] =s= to save
-6. [X] =u= to undo
+1. [X] or use =o= to open a new image
+2. [X] right click to make marks
+3. [X] =u= to remove previous marker
+4. [X] =r= to remove all markers
+5. [X] =s= to save markers
+6. [X] =n= for next image of the same extension in the same dir
+7. [X] =p= for next image of the smme extension in the same dir
+8. [X] confirmation needed if markers are not saved when you quit
+2. [X] windows can be resized for large/small images
 +7. [ ] =CMD+= (window) zoom in+
 +8. [ ] =CMD-= (window) zoom out+
 *** +Optional+
 8. +mouse drag to move file+
+
+* Specification [4/4]
+** marker save file format
+1. ascii type
+1. line 1: corresponding image
+2. marker coordinate in image frame (i.e. (0,0) for left-top corner)
