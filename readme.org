@@ -1,4 +1,4 @@
-#+TITLE: COMBAT: COntour Maker BAsed Tk
+#+TITLE: COMBAT: COntour Maker
 #+AUTHOR: uuplusu
 #+EMAIL: justin.seeley.cn@gmail.com
 
