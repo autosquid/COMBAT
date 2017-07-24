@@ -4,7 +4,6 @@
 
 A tcl/tk based tool for making and saving markers on image
 
-
 [[https://cloud.githubusercontent.com/assets/758925/11529674/956be2ea-9929-11e5-8c07-3d4bdf07934c.png]]
 
 * Usage [6/6]
@@ -20,6 +19,7 @@ A tcl/tk based tool for making and saving markers on image
 2. [X] windows can be resized for large/small images
 +7. [ ] =CMD+= (window) zoom in+
 +8. [ ] =CMD-= (window) zoom out+
+
 *** +Optional+
 8. +mouse drag to move file+
 
